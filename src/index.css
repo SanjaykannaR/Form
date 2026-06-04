@@ -18,6 +18,10 @@ body {
     sans-serif;
 }
 
+#root {
+  min-height: 100vh;
+}
+
 button,
 input,
 textarea {
