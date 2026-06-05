@@ -7,8 +7,8 @@ function App() {
   const [message, setMessage] = useState('Loading...');
 
   useEffect(() => {
-    // Fetching data from your backend port 5000
-    fetch('http://localhost:5000/api/data')
+    // Fetching data from your backend port 5001
+    fetch('http://localhost:5002/api/form')
       .then((res) => res.json())
       .then((data) => {
         setMessage(data.message); 
