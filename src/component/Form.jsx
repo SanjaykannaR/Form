@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Successes from "./Successes";
 
 const slides = [
   {
@@ -37,10 +38,12 @@ const initialForm = {
   phone: "",
   dob: "",
   place: "",
-  time: "",
   date: "",
+  time: "",
   plan: "",
 };
+
+const SUCCESS_DURATION = 4200;
 
 const fields = [
   {
@@ -89,7 +92,6 @@ const fields = [
     type: "date",
     placeholder: "what date do you want to watch?",
   },
-
   {
     id: "time",
     label: "Time",
@@ -97,11 +99,20 @@ const fields = [
     type: "time",
     placeholder: "what time do you want to watch?",
   },
-  
+  {
+    id: "plan",
+    label: "What You Want to Do",
+    icon: "spark",
+    type: "textarea",
+    placeholder: "Write what you are going to do with the watch",
+    rows: 3,
+  },
 ];
 
-const mainFields = fields.filter((field) => !["time", "date"].includes(field.id));
-const scheduleFields = fields.filter((field) => ["time", "date"].includes(field.id));
+const otherMainFields = fields.filter((field) => !["place", "date", "time", "plan"].includes(field.id));
+const placeField = fields.filter((field) => field.id === "place");
+const scheduleFields = fields.filter((field) => ["date", "time"].includes(field.id));
+const textareaFields = fields.filter((field) => ["plan"].includes(field.id));
 
 function CalendarIcon() {
   return (
@@ -166,11 +177,15 @@ function FieldLabel({ icon, children }) {
   );
 }
 
+const BACKEND_URL = "http://localhost:5002"; // Change this to your backend URL
+
 function Form() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [formData, setFormData] = useState(initialForm);
   const [errors, setErrors] = useState({});
-  const [submitMessage, setSubmitMessage] = useState("");
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const resetTimerRef = useRef(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -185,6 +200,14 @@ function Form() {
       const image = new Image();
       image.src = slide.image;
     });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    };
   }, []);
 
   const completion = useMemo(() => {
@@ -204,7 +227,6 @@ function Form() {
       ...current,
       [name]: "",
     }));
-    setSubmitMessage("");
   }
 
   function validateForm() {
@@ -230,22 +252,70 @@ function Form() {
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
-      setSubmitMessage("");
+      setSuccessVisible(false);
       return;
     }
 
-    const payload = {
-      ...formData,
-      submittedAt: new Date().toISOString(),
-      source: "form-24-watch-ui",
-    };
+    // Send data to backend
+    submitFormToBackend();
+  }
 
-    console.log("Backend payload:", payload);
-    setSubmitMessage("Perfect. Your watch plan is ready to send.");
+  async function submitFormToBackend() {
+    setIsSubmitting(true);
+
+    const payload = {
+    name: formData.fullName || formData.name,       // Fallback in case it's named fullName
+    email: formData.email,
+    phone: formData.phoneNumber || formData.phone,   // Fallback in case it's named phoneNumber
+    message: formData.message || "",                 // Ensure it's a string, even if empty
+    submittedAt: new Date().toISOString(),
+    source: "form-24-watch-ui",
+  };
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/form`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log("Backend response:", data);
+
+      // Show success message
+      setSuccessVisible(true);
+      setErrors({});
+
+      if (resetTimerRef.current) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+
+      resetTimerRef.current = window.setTimeout(() => {
+        setFormData(initialForm);
+        setErrors({});
+        setSuccessVisible(false);
+      }, SUCCESS_DURATION);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setErrors({
+        submit: error.message || "Failed to submit form. Please try again.",
+      });
+      setSuccessVisible(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <main className="relative isolate min-h-screen overflow-x-hidden bg-zinc-950 px-4 py-6 text-white sm:px-6 lg:px-10">
+      <Successes show={successVisible} duration={SUCCESS_DURATION} />
+
       <div className="fixed inset-0 -z-10 overflow-hidden bg-zinc-950">
         {slides.map((slide, index) => (
           <div
@@ -269,11 +339,17 @@ function Form() {
           onSubmit={handleSubmit}
           className="mx-auto w-full rounded-3xl border border-white/20 bg-zinc-950/34 p-5 shadow-2xl shadow-black/50 backdrop-blur-xl sm:p-7 lg:p-9"
         >
+          {errors.submit && (
+            <div className="mb-6 rounded-2xl border border-rose-400/50 bg-rose-500/10 p-4 text-rose-200">
+              <p className="text-sm font-semibold">{errors.submit}</p>
+            </div>
+          )}
+
           <div className="mb-7 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-300/35 bg-amber-300/12 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-100">
                 <CalendarIcon />
-                Premium booking form
+                Time booking form
               </p>
               <h1 className="max-w-3xl text-3xl font-black leading-tight text-white drop-shadow-2xl sm:text-4xl lg:text-5xl">
                 Form <span className="text-amber-400">24</span> For Your Time
@@ -296,7 +372,7 @@ function Form() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:gap-5">
-            {mainFields.map((field) => (
+            {otherMainFields.map((field) => (
               <label key={field.id}>
                 <FieldLabel icon={field.icon}>{field.label}</FieldLabel>
                 <input
@@ -315,9 +391,11 @@ function Form() {
                 )}
               </label>
             ))}
+          </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              {scheduleFields.map((field) => (
+          <div className="mt-5 flex gap-4">
+            <div className="flex-1">
+              {placeField.map((field) => (
                 <label key={field.id}>
                   <FieldLabel icon={field.icon}>{field.label}</FieldLabel>
                   <input
@@ -326,34 +404,58 @@ function Form() {
                     value={formData[field.id]}
                     onChange={handleChange}
                     placeholder={field.placeholder}
-                    className="h-12 w-full rounded-2xl border border-white/20 bg-black/24 px-3 text-sm text-white outline-none transition placeholder:text-zinc-400/70 focus:border-amber-300/80 focus:bg-black/38 focus:shadow-[0_0_28px_rgba(245,158,11,0.18)]"
+                    autoComplete={field.autoComplete}
+                    className="h-12 w-full rounded-2xl border border-white/20 bg-black/24 px-4 text-sm text-white outline-none transition placeholder:text-zinc-400/70 focus:border-amber-300/80 focus:bg-black/38 focus:shadow-[0_0_28px_rgba(245,158,11,0.18)]"
                   />
                   {errors[field.id] && (
-                    <span className="mt-2 block text-xs font-medium text-rose-300">
+                    <span className="mt-2 block text-sm font-medium text-rose-300">
                       {errors[field.id]}
                     </span>
                   )}
                 </label>
               ))}
             </div>
+
+            <div className="flex-1 grid grid-cols-2 gap-3">
+              {scheduleFields.map((field) => (
+                <label key={field.id}>
+                  <FieldLabel icon={field.icon}>{field.label}</FieldLabel>
+                <input
+                  name={field.id}
+                  type={field.type}
+                  value={formData[field.id]}
+                  onChange={handleChange}
+                  placeholder={field.placeholder}
+                  className="h-12 w-full rounded-2xl border border-white/20 bg-black/24 px-3 text-sm text-white outline-none transition placeholder:text-zinc-400/70 focus:border-amber-300/80 focus:bg-black/38 focus:shadow-[0_0_28px_rgba(245,158,11,0.18)]"
+                />
+                {errors[field.id] && (
+                  <span className="mt-2 block text-xs font-medium text-rose-300">
+                    {errors[field.id]}
+                  </span>
+                )}
+              </label>
+            ))}
+            </div>
           </div>
 
-          <label className="mt-5 block">
-            <FieldLabel icon="spark">What You Want to Do</FieldLabel>
-            <textarea
-              name="plan"
-              value={formData.plan}
-              onChange={handleChange}
-              placeholder="Write what you are going to do with the watch"
-              rows="3"
-              className="w-full resize-none rounded-2xl border border-white/20 bg-black/24 px-4 py-4 text-sm text-white outline-none transition placeholder:text-zinc-400/70 focus:border-amber-300/80 focus:bg-black/38 focus:shadow-[0_0_28px_rgba(245,158,11,0.18)]"
-            />
-            {errors.plan && (
-              <span className="mt-2 block text-sm font-medium text-rose-300">
-                {errors.plan}
-              </span>
-            )}
-          </label>
+          {textareaFields.map((field) => (
+            <label key={field.id} className="mt-5 block">
+              <FieldLabel icon={field.icon}>{field.label}</FieldLabel>
+              <textarea
+                name={field.id}
+                value={formData[field.id]}
+                onChange={handleChange}
+                placeholder={field.placeholder}
+                rows={field.rows}
+                className="w-full resize-none rounded-2xl border border-white/20 bg-black/24 px-4 py-4 text-sm text-white outline-none transition placeholder:text-zinc-400/70 focus:border-amber-300/80 focus:bg-black/38 focus:shadow-[0_0_28px_rgba(245,158,11,0.18)]"
+              />
+              {errors[field.id] && (
+                <span className="mt-2 block text-sm font-medium text-rose-300">
+                  {errors[field.id]}
+                </span>
+              )}
+            </label>
+          ))}
 
           <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
@@ -373,16 +475,16 @@ function Form() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              {submitMessage && (
-                <p className="text-sm font-semibold text-emerald-300">
-                  {submitMessage}
-                </p>
-              )}
               <button
                 type="submit"
-                className="rounded-2xl bg-amber-400 px-7 py-3 text-sm font-black text-zinc-950 shadow-lg shadow-amber-500/25 transition hover:-translate-y-0.5 hover:bg-amber-300 focus:outline-none focus:ring-4 focus:ring-amber-300/40"
+                disabled={isSubmitting}
+                className={`rounded-2xl px-7 py-3 text-sm font-black text-zinc-950 shadow-lg transition focus:outline-none focus:ring-4 ${
+                  isSubmitting
+                    ? "bg-amber-200 cursor-not-allowed opacity-75"
+                    : "bg-amber-400 shadow-amber-500/25 hover:-translate-y-0.5 hover:bg-amber-300 focus:ring-amber-300/40"
+                }`}
               >
-                Click to Travel in Time!
+                {isSubmitting ? "Sending..." : "Click to Travel in Time!"}
               </button>
             </div>
           </div>
