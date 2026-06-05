@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Successes from "./Successes";
 
 const slides = [
   {
@@ -41,6 +42,8 @@ const initialForm = {
   date: "",
   plan: "",
 };
+
+const SUCCESS_DURATION = 4200;
 
 const fields = [
   {
@@ -170,7 +173,8 @@ function Form() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [formData, setFormData] = useState(initialForm);
   const [errors, setErrors] = useState({});
-  const [submitMessage, setSubmitMessage] = useState("");
+  const [successVisible, setSuccessVisible] = useState(false);
+  const resetTimerRef = useRef(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -185,6 +189,14 @@ function Form() {
       const image = new Image();
       image.src = slide.image;
     });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    };
   }, []);
 
   const completion = useMemo(() => {
@@ -204,7 +216,6 @@ function Form() {
       ...current,
       [name]: "",
     }));
-    setSubmitMessage("");
   }
 
   function validateForm() {
@@ -230,7 +241,7 @@ function Form() {
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
-      setSubmitMessage("");
+      setSuccessVisible(false);
       return;
     }
 
@@ -241,11 +252,23 @@ function Form() {
     };
 
     console.log("Backend payload:", payload);
-    setSubmitMessage("Perfect. Your watch plan is ready to send.");
+    setSuccessVisible(true);
+
+    if (resetTimerRef.current) {
+      window.clearTimeout(resetTimerRef.current);
+    }
+
+    resetTimerRef.current = window.setTimeout(() => {
+      setFormData(initialForm);
+      setErrors({});
+      setSuccessVisible(false);
+    }, SUCCESS_DURATION);
   }
 
   return (
     <main className="relative isolate min-h-screen overflow-x-hidden bg-zinc-950 px-4 py-6 text-white sm:px-6 lg:px-10">
+      <Successes show={successVisible} duration={SUCCESS_DURATION} />
+
       <div className="fixed inset-0 -z-10 overflow-hidden bg-zinc-950">
         {slides.map((slide, index) => (
           <div
@@ -373,11 +396,6 @@ function Form() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              {submitMessage && (
-                <p className="text-sm font-semibold text-emerald-300">
-                  {submitMessage}
-                </p>
-              )}
               <button
                 type="submit"
                 className="rounded-2xl bg-amber-400 px-7 py-3 text-sm font-black text-zinc-950 shadow-lg shadow-amber-500/25 transition hover:-translate-y-0.5 hover:bg-amber-300 focus:outline-none focus:ring-4 focus:ring-amber-300/40"
