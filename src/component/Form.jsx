@@ -2,28 +2,32 @@ import { useEffect, useMemo, useState } from "react";
 
 const slides = [
   {
-    title: "Alpine Night",
-    subtitle: "Mountain escape",
+    title: "Hourglass Loop",
+    subtitle: "Light trails through time",
     image:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=75",
+      "https://images.unsplash.com/photo-1745989786512-9e5f098e17e1?auto=format&fit=crop&w=1800&q=80",
+    position: "center 45%",
   },
   {
-    title: "Northern Lake",
-    subtitle: "Calm evening plan",
+    title: "Clock Corridor",
+    subtitle: "A passage between moments",
     image:
-      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1400&q=75",
+      "https://images.unsplash.com/photo-1699135187444-936feb8614d3?auto=format&fit=crop&w=1800&q=80",
+    position: "center center",
   },
   {
-    title: "Ocean Route",
-    subtitle: "Blue hour travel",
+    title: "Future Platform",
+    subtitle: "Waiting for another timeline",
     image:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=75",
+      "https://images.unsplash.com/photo-1726608708346-165c730d3f30?auto=format&fit=crop&w=1800&q=80",
+    position: "center 58%",
   },
   {
-    title: "Forest Escape",
-    subtitle: "Deep nature watch",
+    title: "Golden Time Dial",
+    subtitle: "A watch face bending space",
     image:
-      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1400&q=75",
+      "https://images.unsplash.com/photo-1719492351046-8bce602a10c8?auto=format&fit=crop&w=1800&q=80",
+    position: "center center",
   },
 ];
 
@@ -79,19 +83,21 @@ const fields = [
     autoComplete: "address-level2",
   },
   {
-    id: "time",
-    label: "Time",
-    icon: "clock",
-    type: "time",
-    placeholder: "what time do you want to watch?",
-  },
-  {
     id: "date",
     label: "Date",
     icon: "calendar",
     type: "date",
     placeholder: "what date do you want to watch?",
   },
+
+  {
+    id: "time",
+    label: "Time",
+    icon: "clock",
+    type: "time",
+    placeholder: "what time do you want to watch?",
+  },
+  
 ];
 
 const mainFields = fields.filter((field) => !["time", "date"].includes(field.id));
@@ -247,11 +253,14 @@ function Form() {
             className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-out ${
               activeSlide === index ? "opacity-100" : "opacity-0"
             }`}
-            style={{ backgroundImage: `url(${slide.image})` }}
+            style={{
+              backgroundImage: `url(${slide.image})`,
+              backgroundPosition: slide.position,
+            }}
           />
         ))}
-        <div className="absolute inset-0 bg-black/25" />
-        <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(3,7,18,0.76),rgba(12,12,18,0.36)_48%,rgba(3,7,18,0.72)),radial-gradient(circle_at_42%_34%,rgba(245,158,11,0.18),transparent_32%)]" />
+        <div className="absolute inset-0 bg-black/30" />
+        <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(3,7,18,0.82),rgba(12,12,18,0.38)_48%,rgba(3,7,18,0.76)),radial-gradient(circle_at_40%_30%,rgba(245,158,11,0.2),transparent_30%)]" />
         <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-zinc-950/80 to-transparent" />
       </div>
 
@@ -373,7 +382,7 @@ function Form() {
                 type="submit"
                 className="rounded-2xl bg-amber-400 px-7 py-3 text-sm font-black text-zinc-950 shadow-lg shadow-amber-500/25 transition hover:-translate-y-0.5 hover:bg-amber-300 focus:outline-none focus:ring-4 focus:ring-amber-300/40"
               >
-                Submit Watch Plan
+                Click to Travel in Time!
               </button>
             </div>
           </div>
